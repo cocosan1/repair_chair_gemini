@@ -18,8 +18,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 # --- Streamlit UI ---
 st.set_page_config(layout="centered") # Use wide layout
-st.title("椅子画像検索app")
-st.markdown("アップロードされた椅子の画像と類似の椅子を検索・表示します。")
+st.title("チェア画像検索app")
+st.markdown("アップロードされたチェアの画像と類似のチェアを検索・表示します。")
 
 # --- 2. Configuration ---
 # ファイルパスはStreamlitアプリのルートからの相対パスを想定
@@ -520,8 +520,8 @@ if initialization_messages:
 
 # --- アプリケーションのメインロジック ---
 if api_key_present and models_ready and files_present:
-    st.header("ステップ1: ターゲット画像のアップロード")
-    uploaded_file = st.file_uploader("椅子画像をアップロードしてください (JPG, PNG)", type=["jpg", "png", "jpeg"])
+    st.subheader("ステップ1: チェア画像のアップロード")
+    uploaded_file = st.file_uploader("チェア画像をアップロードしてください (JPG, PNG)", type=["jpg", "png", "jpeg"])
     upload_status_placeholder = st.empty()
 
     if uploaded_file is not None:
@@ -542,7 +542,7 @@ if api_key_present and models_ready and files_present:
 
     if st.session_state.uploaded_file_info:
         with upload_status_placeholder.container():
-            st.subheader("ターゲット画像")
+            st.markdown("##### target image")
             st.image(st.session_state.uploaded_file_info['data'], caption=f"アップロード画像: {st.session_state.uploaded_file_info['name']}", width=200)
 
         # --- Step 2: Classification ---
@@ -700,8 +700,8 @@ else:
 
 # --- 椅子画像一覧 Link ---
 st.markdown("---")
-st.subheader("椅子画像一覧")
-st.caption("うまく椅子が抽出されなかった時はこちらでご覧ください。")
+st.subheader("チェア画像一覧")
+st.caption("うまくチェアが抽出されなかった時はこちらでご覧ください。")
 link_url = "http://repair-app-magnific.s3-website-ap-northeast-1.amazonaws.com/"
 st.link_button("画像一覧サイトを開く", link_url)
 
