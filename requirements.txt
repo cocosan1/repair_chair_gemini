@@ -1,0 +1,11 @@
+streamlit
+pandas
+google-generativeai
+Pillow
+numpy
+tensorflow>=2.5.0 # Specify a suitable version
+tensorflow_hub
+scikit-learn
+openpyxl # Needed for reading .xlsx files with pandas
+matplotlib
+japanize-matplotlib
