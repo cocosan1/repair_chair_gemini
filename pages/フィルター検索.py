@@ -281,7 +281,7 @@ if df_classification is not None:
             st.markdown("---")
             # 「更に見る」ボタンは、初期検索結果がある場合に表示
             if not initial_df_display.empty:
-                show_more_button = st.button("更に表示する（赤/黄/白フラグのある項目）")
+                show_more_button = st.button("更に表示する")
 
                 if show_more_button:
                     st.session_state.show_more_clicked = True # ボタンが押されたフラグ
