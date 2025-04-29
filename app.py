@@ -533,7 +533,12 @@ if initialization_messages:
 # --- アプリケーションのメインロジック ---
 if api_key_present and models_ready and files_present:
     st.subheader("ステップ1: チェア画像のアップロード")
-    uploaded_file = st.file_uploader("チェア画像をアップロードしてください (JPG, PNG)", type=["jpg", "png", "jpeg"])
+
+    # 許可する拡張子のリストに大文字版も追加
+    # Streamlitのtypeパラメータは通常ドットなしの拡張子名を期待します
+    allowed_extensions = ["jpg", "jpeg", "png", "JPG", "JPEG", "PNG"]
+
+    uploaded_file = st.file_uploader("チェア画像をアップロードしてください (JPG, PNG)", type=allowed_extensions)
     upload_status_placeholder = st.empty()
 
     if uploaded_file is not None:
