@@ -535,12 +535,53 @@ if api_key_present and models_ready and files_present:
     st.subheader("ステップ1: チェア画像のアップロード")
 
     # 許可する拡張子のリストは小文字のみにする
-    allowed_extensions = ["jpg", "jpeg", "png"] # <- ★修正点: 大文字を削除
+    # allowed_extensions = ["jpg", "jpeg", "png"] # <- ★修正点: 大文字を削除
 
-    uploaded_file = st.file_uploader("チェア画像をアップロードしてください (JPG, PNG)", type=allowed_extensions)
+    # uploaded_file = st.file_uploader("チェア画像をアップロードしてください (JPG, PNG)", type=allowed_extensions)
+    uploaded_file = st.file_uploader("チェア画像をアップロードしてください (JPG, PNG)")
     upload_status_placeholder = st.empty()
 
     if uploaded_file is not None:
+        # ファイルがアップロードされたら処理を継続
+
+        # --- ★ここから追加 ---
+        # ファイル名から拡張子を取得し、小文字に変換
+        file_name, file_extension = os.path.splitext(uploaded_file.name)
+        file_extension_lower = file_extension.lower()
+
+        # 許可する拡張子リスト（小文字）
+        allowed_extensions_check = ['.jpg', '.jpeg', '.png'] # ドット付きで比較
+
+        # 拡張子をチェック
+        if file_extension_lower not in allowed_extensions_check:
+            st.error(f"エラー:許可されていないファイル形式です ({file_extension})。JPG, JPEG, PNGファイルをアップロードしてください。")
+            # エラーの場合は以降の処理を中断するために uploaded_file を None に戻すか、
+            # st.stop() を使うなどの処理が必要
+            uploaded_file = None # 例: Noneに戻す
+        else:
+             # 許可された拡張子の場合のみファイル情報をセッション状態に保存
+             if st.session_state.uploaded_file_info is None or st.session_state.uploaded_file_info['name'] != uploaded_file.name:
+                st.session_state.uploaded_file_info = {
+                    'name': uploaded_file.name, 'type': uploaded_file.type,
+                    'size': uploaded_file.size, 'data': uploaded_file.getvalue()
+                }
+                # 関連するセッション状態をリセット
+                st.session_state.classification_result = None
+                st.session_state.error_msg = None
+                st.session_state.top_8_results = None
+                st.session_state.search_figure = None
+                st.session_state.selected_product_number = None
+                st.session_state.search_logs = None
+                st.session_state.filtered_filenames_list = None
+                st.session_state.embedding_ranked_list = None
+        # --- ★ここまで追加 ---
+
+
+
+
+
+
+
         # 新しいファイルがアップロードされたら状態をリセット
         if st.session_state.uploaded_file_info is None or st.session_state.uploaded_file_info['name'] != uploaded_file.name:
             st.session_state.uploaded_file_info = {
