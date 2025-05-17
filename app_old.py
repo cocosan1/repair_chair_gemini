@@ -17,7 +17,7 @@ import tensorflow_hub as hub
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- Streamlit UI ---
-st.set_page_config(layout="centered")
+st.set_page_config(layout="centered") 
 
 st.title("チェア画像検索app")
 st.markdown("アップロードされたチェアの画像と類似のチェアを検索・表示します。")
@@ -29,7 +29,7 @@ EXCEL_ALL_PATH = "chair_all.xlsx"
 IMAGE_FOLDER_PATH = "images" # Streamlitアプリ内の 'images' フォルダ
 PRICE_LIST_EXCEL_PATH = "修理価格一覧app用.xlsx"
 COMMENT_EXCEL_PATH = "comment.xlsx"
-NOTES_EXCEL_PATH = "修理注意点.xlsx"
+NOTES_EXCEL_PATH = "修理注意点.xlsx" 
 
 # Classification items #
 classification_items = {
@@ -246,6 +246,7 @@ def perform_search_and_rank(search_classifications, target_image_data):
 
     if not os.path.exists(EXCEL_CLASSIFICATION_PATH):
         log_messages.append(f"❌ エラー: 分類用Excelファイルが見つかりません: {EXCEL_CLASSIFICATION_PATH}")
+        # <--- 修正: 5つの値を返すように変更
         return None, None, log_messages, None, None
     try:
         df = pd.read_excel(EXCEL_CLASSIFICATION_PATH)
@@ -253,10 +254,12 @@ def perform_search_and_rank(search_classifications, target_image_data):
         if not all(col in df.columns for col in required_cols):
             missing = [c for c in required_cols if c not in df.columns]
             log_messages.append(f"❌ エラー: Excelに必要な列がありません: {missing}")
+            # <--- 修正: 5つの値を返すように変更
             return None, None, log_messages, None, None
         log_messages.append(f"📊 分類用Excel読み込み完了: {EXCEL_CLASSIFICATION_PATH} ({len(df)}件)")
     except Exception as e:
         log_messages.append(f"❌ エラー: 分類用Excel読み込みエラー: {e}")
+        # <--- 修正: 5つの値を返すように変更
         return None, None, log_messages, None, None
 
     mask = pd.Series([True] * len(df))
@@ -269,21 +272,27 @@ def perform_search_and_rank(search_classifications, target_image_data):
         matching_df = df[mask].copy()
     except Exception as e:
         log_messages.append(f"❌ エラー: Excelフィルタリングエラー: {e}")
+        # <--- 修正: 5つの値を返すように変更
         return None, None, log_messages, None, None
 
     if matching_df.empty:
         log_messages.append("ℹ️ 分類条件に一致する候補画像は見つかりませんでした。")
+        # <--- 修正: 5つの値を返すように変更 (空リストを返す)
         return None, None, log_messages, [], []
 
     if 'ファイル名' not in matching_df.columns:
          log_messages.append("❌ エラー: フィルタリング後のデータに 'ファイル名' 列がありません。")
+         # <--- 修正: 5つの値を返すように変更
          return None, None, log_messages, None, None
 
+    # <--- 修正なし: フィルタリング後のファイル名リストを保存
     filtered_filenames = matching_df['ファイル名'].dropna().astype(str).str.strip().tolist()
     log_messages.append(f"\n✅ {len(filtered_filenames)}件の候補画像が見つかりました（分類フィルター後）。")
 
+    # --- Perform Embedding Similarity Ranking ---
     if not embedding_model:
          log_messages.append("\n⚠️ 画像埋め込みモデルがロードされていないため、類似度ランキングをスキップします。")
+         # <--- 修正: 5つの値を返すように変更
          return None, None, log_messages, filtered_filenames, None
 
     log_messages.append("\n⏳ 1. 埋め込みベクトルによる類似度を計算中...")
@@ -291,17 +300,20 @@ def perform_search_and_rank(search_classifications, target_image_data):
     target_image_tensor = load_and_preprocess_image(target_image_data, IMAGE_SIZE)
     if target_image_tensor is None:
          log_messages.append("❌ エラー: ターゲット画像を処理できませんでした。")
+         # <--- 修正: 5つの値を返すように変更
          return None, None, log_messages, filtered_filenames, None
     target_embedding = get_image_embedding(target_image_tensor)
 
     if target_embedding is None:
         log_messages.append("❌ エラー: ターゲット画像の埋め込みを生成できませんでした。")
+        # <--- 修正: 5つの値を返すように変更
         return None, None, log_messages, filtered_filenames, None
 
-    similarity_results_temp = []
+    similarity_results_temp = [] # 一時的なリスト
     processed_count = 0
     if not os.path.isdir(IMAGE_FOLDER_PATH):
         log_messages.append(f"❌ エラー: 画像フォルダが見つかりません: {IMAGE_FOLDER_PATH}")
+        # <--- 修正: 5つの値を返すように変更
         return None, None, log_messages, filtered_filenames, None
 
     for filename in filtered_filenames:
@@ -324,18 +336,23 @@ def perform_search_and_rank(search_classifications, target_image_data):
 
     if not similarity_results_temp:
          log_messages.append("ℹ️ 埋め込み類似度を計算できた候補画像がありませんでした。")
+         # <--- 修正: 5つの値を返すように変更 (空リストを返す)
          return None, None, log_messages, filtered_filenames, []
 
+    # --- Sort by Embedding Similarity and Select Top 8 ---
     similarity_results_temp.sort(key=lambda x: x.get("score", 0.0), reverse=True)
-    embedding_ranked_results = similarity_results_temp[:8]
-    top_8_candidates = embedding_ranked_results
+    # <--- 修正なし: 埋め込みランク後のリストを保存 (上位8件に絞る前)
+    embedding_ranked_results = similarity_results_temp[:8] # 上位8件を記録
+    top_8_candidates = embedding_ranked_results # 変数名維持のため代入
 
     if not top_8_candidates:
         log_messages.append("ℹ️ 埋め込み類似度でランク付けできる候補がありませんでした。")
+        # <--- 修正: 5つの値を返すように変更 (空リストを返す)
         return None, None, log_messages, filtered_filenames, []
 
     log_messages.append(f"\n✅ 埋め込み類似度 上位{len(top_8_candidates)}件を取得。")
 
+    # --- Re-rank Top 8 using Gemini Visual Similarity ---
     log_messages.append(f"\n⏳ 2. 上位{len(top_8_candidates)}件について、Geminiによる視覚的類似度を評価中 (時間がかかる場合があります)...")
     gemini_ranked_results_temp = []
     start_gemini_time = time.time()
@@ -363,9 +380,11 @@ def perform_search_and_rank(search_classifications, target_image_data):
     total_gemini_time = end_gemini_time - start_gemini_time
     log_messages.append(f"✅ Gemini類似度評価完了 ({gemini_api_call_count}回 APIコール)。時間: {total_gemini_time:.2f} 秒")
 
+    # --- Sort by Gemini Score ---
     gemini_ranked_results_temp.sort(key=lambda x: x.get('gemini_score', -1), reverse=True)
-    gemini_ranked_results = gemini_ranked_results_temp
+    gemini_ranked_results = gemini_ranked_results_temp # 最終結果を代入
 
+    # --- Create Figure for Top 3 Images ---
     log_messages.append("\n✅ 上位3件の画像表示を準備中...")
     fig = None
     final_top_3_for_figure = gemini_ranked_results[:3]
@@ -391,6 +410,9 @@ def perform_search_and_rank(search_classifications, target_image_data):
         except Exception as e:
             log_messages.append(f"❌ エラー: 上位3画像の準備中にエラー: {type(e).__name__}: {e}")
             fig = None
+
+    # --- Return Results, Figure, Logs, and Intermediate Lists ---
+    # <--- 修正なし: 5つの値を返す
     return gemini_ranked_results, fig, log_messages, filtered_filenames, embedding_ranked_results
 
 # --- 7. Display Product Information ---
@@ -457,7 +479,7 @@ def display_product_info(product_number):
 if 'uploaded_file_info' not in st.session_state: st.session_state['uploaded_file_info'] = None
 if 'classification_result' not in st.session_state: st.session_state['classification_result'] = None
 if 'error_msg' not in st.session_state: st.session_state['error_msg'] = None
-if 'top_8_results' not in st.session_state: st.session_state['top_8_results'] = None
+if 'top_8_results' not in st.session_state: st.session_state['top_8_results'] = None # Geminiランク後 (最終結果)
 if 'search_figure' not in st.session_state: st.session_state['search_figure'] = None
 if 'selected_product_number' not in st.session_state: st.session_state['selected_product_number'] = None
 if 'search_logs' not in st.session_state: st.session_state['search_logs'] = None
@@ -477,7 +499,7 @@ files_present = (
     os.path.isdir(IMAGE_FOLDER_PATH) and
     os.path.exists(COMMENT_EXCEL_PATH) and
     os.path.exists(PRICE_LIST_EXCEL_PATH) and
-    os.path.exists(NOTES_EXCEL_PATH)
+    os.path.exists(NOTES_EXCEL_PATH) # <--- この行を追加
 )
 models_ready = gemini_model is not None and embedding_model is not None
 
@@ -489,8 +511,8 @@ if not files_present:
     missing_files_msg += f"- 詳細Excel: {EXCEL_ALL_PATH} {'✅' if os.path.exists(EXCEL_ALL_PATH) else '❌'}\n"
     missing_files_msg += f"- 画像フォルダ: {IMAGE_FOLDER_PATH} {'✅' if os.path.isdir(IMAGE_FOLDER_PATH) else '❌'}\n"
     missing_files_msg += f"- コメントExcel: {COMMENT_EXCEL_PATH} {'✅' if os.path.exists(COMMENT_EXCEL_PATH) else '❌'}\n"
-    missing_files_msg += f"- 修理価格Excel: {PRICE_LIST_EXCEL_PATH} {'✅' if os.path.exists(PRICE_LIST_EXCEL_PATH) else '❌'}\n"
-    missing_files_msg += f"- 注意点Excel: {NOTES_EXCEL_PATH} {'✅' if os.path.exists(NOTES_EXCEL_PATH) else '❌'}"
+    missing_files_msg += f"- 修理価格Excel: {PRICE_LIST_EXCEL_PATH} {'✅' if os.path.exists(PRICE_LIST_EXCEL_PATH) else '❌'}\n" # <--- 末尾に改行を追加
+    missing_files_msg += f"- 注意点Excel: {NOTES_EXCEL_PATH} {'✅' if os.path.exists(NOTES_EXCEL_PATH) else '❌'}" # <--- この行を追加
     st.error(missing_files_msg)
 
 # --- 初期化ログ表示 ---
@@ -512,52 +534,36 @@ if initialization_messages:
 if api_key_present and models_ready and files_present:
     st.subheader("ステップ1: チェア画像のアップロード")
 
-    # 修正点 1: st.file_uploader に type 引数を指定
-    allowed_upload_extensions = ["jpg", "jpeg", "png"] # ドットなし、小文字
-    uploaded_file = st.file_uploader(
-        "チェア画像をアップロードしてください (JPG, PNG)",
-        type=allowed_upload_extensions
-    )
+    # 許可する拡張子のリストは小文字のみにする
+    # allowed_extensions = ["jpg", "jpeg", "png"] # <- ★修正点: 大文字を削除
+
+    # uploaded_file = st.file_uploader("チェア画像をアップロードしてください (JPG, PNG)", type=allowed_extensions)
+    uploaded_file = st.file_uploader("チェア画像をアップロードしてください (JPG, PNG)")
     upload_status_placeholder = st.empty()
 
     if uploaded_file is not None:
+        # ファイルがアップロードされたら処理を継続
+
+        # --- ★ここから追加 ---
         # ファイル名から拡張子を取得し、小文字に変換
         file_name, file_extension = os.path.splitext(uploaded_file.name)
-        file_extension_lower = file_extension.lower() # 例: ".jpg"
+        file_extension_lower = file_extension.lower()
 
-        # Python側でのチェック用拡張子リスト（小文字、ドット付き）
-        allowed_extensions_check_python = ['.jpg', '.jpeg', '.png']
+        # 許可する拡張子リスト（小文字）
+        allowed_extensions_check = ['.jpg', '.jpeg', '.png'] # ドット付きで比較
 
-        if file_extension_lower not in allowed_extensions_check_python:
+        # 拡張子をチェック
+        if file_extension_lower not in allowed_extensions_check:
             st.error(f"エラー:許可されていないファイル形式です ({file_extension})。JPG, JPEG, PNGファイルをアップロードしてください。")
-            # エラーの場合はセッション情報をクリア
-            if st.session_state.uploaded_file_info is not None: # 既に何かアップロード情報があればクリア
-                st.session_state.uploaded_file_info = None
-                # 関連するセッション状態をリセット
-                st.session_state.classification_result = None
-                st.session_state.error_msg = None
-                st.session_state.top_8_results = None
-                st.session_state.search_figure = None
-                st.session_state.selected_product_number = None
-                st.session_state.search_logs = None
-                st.session_state.filtered_filenames_list = None
-                st.session_state.embedding_ranked_list = None
-                # 必要であれば st.rerun() を呼び出してUIをクリーンにする
-                # st.rerun()
+            # エラーの場合は以降の処理を中断するために uploaded_file を None に戻すか、
+            # st.stop() を使うなどの処理が必要
+            uploaded_file = None # 例: Noneに戻す
         else:
-             # 許可された拡張子の場合
-             # 新しいファイルがアップロードされたか、または以前と異なるファイルがアップロードされた場合
-            new_file_condition = (
-                st.session_state.uploaded_file_info is None or
-                st.session_state.uploaded_file_info['name'] != uploaded_file.name or
-                st.session_state.uploaded_file_info['size'] != uploaded_file.size # サイズも比較に加える
-            )
-            if new_file_condition:
+             # 許可された拡張子の場合のみファイル情報をセッション状態に保存
+             if st.session_state.uploaded_file_info is None or st.session_state.uploaded_file_info['name'] != uploaded_file.name:
                 st.session_state.uploaded_file_info = {
-                    'name': uploaded_file.name,
-                    'type': uploaded_file.type, # MIMEタイプ
-                    'size': uploaded_file.size,
-                    'data': uploaded_file.getvalue()
+                    'name': uploaded_file.name, 'type': uploaded_file.type,
+                    'size': uploaded_file.size, 'data': uploaded_file.getvalue()
                 }
                 # 関連するセッション状態をリセット
                 st.session_state.classification_result = None
@@ -568,19 +574,29 @@ if api_key_present and models_ready and files_present:
                 st.session_state.search_logs = None
                 st.session_state.filtered_filenames_list = None
                 st.session_state.embedding_ranked_list = None
-                # upload_status_placeholder.empty() # 必要に応じて以前の表示をクリア
+        # --- ★ここまで追加 ---
 
-    # 修正点 2: 冗長なセッション更新ブロックを削除
-    # 以下のブロックは、上記の if/else 内で既に処理されているため不要です。
-    # # 新しいファイルがアップロードされたら状態をリセット
-    # if st.session_state.uploaded_file_info is None or st.session_state.uploaded_file_info['name'] != uploaded_file.name:
-    #     st.session_state.uploaded_file_info = {
-    #         'name': uploaded_file.name, 'type': uploaded_file.type,
-    #         'size': uploaded_file.size, 'data': uploaded_file.getvalue()
-    #     }
-    #     # 関連するセッション状態をリセット
-    #     st.session_state.classification_result = None
-    #     # ... (以下略)
+
+
+
+
+
+
+        # 新しいファイルがアップロードされたら状態をリセット
+        if st.session_state.uploaded_file_info is None or st.session_state.uploaded_file_info['name'] != uploaded_file.name:
+            st.session_state.uploaded_file_info = {
+                'name': uploaded_file.name, 'type': uploaded_file.type,
+                'size': uploaded_file.size, 'data': uploaded_file.getvalue()
+            }
+            # 関連するセッション状態をリセット
+            st.session_state.classification_result = None
+            st.session_state.error_msg = None
+            st.session_state.top_8_results = None
+            st.session_state.search_figure = None
+            st.session_state.selected_product_number = None
+            st.session_state.search_logs = None
+            st.session_state.filtered_filenames_list = None
+            st.session_state.embedding_ranked_list = None
 
     if st.session_state.uploaded_file_info:
         with upload_status_placeholder.container():
@@ -605,35 +621,41 @@ if api_key_present and models_ready and files_present:
 
             # --- Step 3: Search and Rank ---
             search_logs = []
+            # 検索結果がまだない場合に実行
             if st.session_state.classification_result and st.session_state.top_8_results is None and st.session_state.filtered_filenames_list is None:
                 with st.spinner("🔍 類似画像を検索・ランキング中... (時間がかかる場合があります)"):
                     target_image_data = st.session_state.uploaded_file_info['data']
+                    # <--- 修正なし: 5つの戻り値を受け取る
                     top_8, fig_top_3, search_logs, filtered_list, embed_list = perform_search_and_rank(
                         st.session_state.classification_result,
                         target_image_data
                     )
+                    # セッション状態に保存
                     st.session_state.top_8_results = top_8
                     st.session_state.search_figure = fig_top_3
                     st.session_state.search_logs = search_logs
                     st.session_state.filtered_filenames_list = filtered_list
                     st.session_state.embedding_ranked_list = embed_list
 
-            st.markdown("---")
+            # --- デバッグ用エキスパンダーの表示 ---
+            st.markdown("---") # 区切り
             st.markdown("###### ⚙️ 検索プロセス詳細 (デバッグ用)")
 
+            # 1. 分類フィルター後のリスト表示 (修正不要: getのデフォルト値[]があるため安全)
             with st.expander(f"1. 分類フィルター後の候補リスト ({len(st.session_state.get('filtered_filenames_list', []))}件)", expanded=False):
                 filtered_list = st.session_state.get('filtered_filenames_list')
-                if filtered_list is not None:
+                if filtered_list is not None: # 一応チェックは残す
                     if not filtered_list:
                         st.info("分類条件に一致するファイルは見つかりませんでした。")
                     else:
                         st.dataframe(pd.DataFrame(filtered_list, columns=["ファイル名"]), height=300, use_container_width=True)
                 else:
-                    st.info("フィルタリングはまだ実行されていません。")
+                    st.info("フィルタリングはまだ実行されていません。") # このケースはほぼ無いはずだが念のため
 
+            # 2. 埋め込み類似度 上位8件のリスト表示 (修正不要: getのデフォルト値[]があるため安全)
             with st.expander(f"2. 埋め込み類似度 上位8件 ({len(st.session_state.get('embedding_ranked_list', []))}件)", expanded=False):
                 embed_list = st.session_state.get('embedding_ranked_list')
-                if embed_list is not None:
+                if embed_list is not None: # 一応チェックは残す
                     if not embed_list:
                         st.info("埋め込み類似度でランク付けされた候補はありません。")
                     else:
@@ -642,12 +664,15 @@ if api_key_present and models_ready and files_present:
                            embed_df['score'] = embed_df['score'].map('{:.3f}'.format)
                         st.dataframe(embed_df[['filename', 'score']], height=300, use_container_width=True)
                 else:
-                    st.info("埋め込み類似度計算はまだ実行されていないか、スキップされました。")
+                    st.info("埋め込み類似度計算はまだ実行されていないか、スキップされました。") # このケースはほぼ無いはずだが念のため
 
+            # 3. Gemini類似度評価後の最終リスト表示 (★修正箇所★)
+            # --- len() 計算前にNoneチェックを追加 ---
             gemini_list_for_count = st.session_state.get('top_8_results')
             gemini_count = len(gemini_list_for_count) if gemini_list_for_count is not None else 0
-            with st.expander(f"3. Gemini類似度評価後 上位8件 ({gemini_count}件)", expanded=False):
-                gemini_list = st.session_state.get('top_8_results')
+            # --- 修正ここまで ---
+            with st.expander(f"3. Gemini類似度評価後 上位8件 ({gemini_count}件)", expanded=False): # 修正: 事前計算した件数を使用
+                gemini_list = st.session_state.get('top_8_results') # expander内部での利用のため、再度取得
                 if gemini_list is not None:
                     if not gemini_list:
                         st.info("最終的な類似候補はありません。")
@@ -660,7 +685,9 @@ if api_key_present and models_ready and files_present:
                         st.dataframe(gemini_df[['filename', 'gemini_score', 'score']].rename(columns={'score': 'embed_score'}), height=300, use_container_width=True)
                 else:
                     st.info("Gemini類似度評価はまだ実行されていないか、スキップされました。")
+            # --- デバッグ用エキスパンダーここまで ---
 
+            # Display search logs in expander (if available)
             if 'search_logs' in st.session_state and st.session_state.search_logs:
                  with st.expander("ステップ3: 検索・ランキング処理ログ", expanded=False):
                      for log_line in st.session_state.search_logs:
@@ -671,6 +698,7 @@ if api_key_present and models_ready and files_present:
                          elif log_line.startswith("📊") or log_line.startswith("⏳") or log_line.startswith("🔄"): st.write(log_line)
                          else: st.text(log_line)
 
+            # --- Display Top 3 Results (Plot) ---
             if st.session_state.top_8_results:
                 st.markdown("---")
                 st.subheader("類似度 上位3件:")
@@ -679,13 +707,14 @@ if api_key_present and models_ready and files_present:
                 else:
                      st.warning("上位3画像の表示中にエラーが発生したか、画像が見つかりませんでした。")
 
+            # --- Display Rank 4-8 in Expander ---
             if st.session_state.top_8_results and len(st.session_state.top_8_results) > 3:
                 with st.expander("類似度 4位～8位を表示"):
                     results_4_to_8 = st.session_state.top_8_results[3:8]
                     if not results_4_to_8:
                         st.info("4位から8位の画像はありません。")
                     else:
-                        cols = st.columns(2)
+                        cols = st.columns(2) # 2列で表示
                         col_idx = 0
                         for rank_idx, result in enumerate(results_4_to_8):
                             rank = rank_idx + 4
@@ -701,12 +730,14 @@ if api_key_present and models_ready and files_present:
                                 gemini_score_val = result.get('gemini_score')
                                 gemini_score_str = f"{gemini_score_val:.3f}" if isinstance(gemini_score_val, (int, float)) else "評価失敗" if gemini_score_val is None else "N/A"
                                 st.markdown(f"""**Rank {rank}: {result['filename']}**\n- Gemini Sim: {gemini_score_str}\n- Embed Sim: {embed_score_str}""")
-                                st.markdown("---")
+                                st.markdown("---") # 画像ごとに区切り線
                             col_idx += 1
 
+            # --- Step 4: Display Product Info Dropdown ---
             if st.session_state.top_8_results:
+                # ファイル名から拡張子を除いて品番リストを作成
                 product_numbers = []
-                seen_numbers = set()
+                seen_numbers = set() # 重複を避けるため
                 for res in st.session_state.top_8_results:
                     if 'filename' in res and '.' in res['filename']:
                         p_num = res['filename'].split('.')[0]
@@ -718,36 +749,48 @@ if api_key_present and models_ready and files_present:
                     st.markdown("---")
                     st.subheader("ステップ4: 詳細表示する品番を選択")
 
+                    # ドロップダウンの選択状態を維持
                     current_selection = st.session_state.get('selected_product_number')
-                    current_index = 0
+                    current_index = 0 # デフォルトは先頭
                     if current_selection in product_numbers:
                         try:
                             current_index = product_numbers.index(current_selection)
                         except ValueError:
-                            current_index = 0
+                            current_index = 0 # 見つからない場合も先頭
                     elif st.session_state.get('selected_product_number') is not None:
+                        # 以前選択していたものがリストにない場合も先頭
                         current_index = 0
-                        st.session_state.selected_product_number = None
+                        st.session_state.selected_product_number = None # 選択をリセット
 
                     selected_product = st.selectbox(
                         "上位8件から品番を選択してください:",
                         options=product_numbers,
                         index=current_index,
-                        key="product_select"
+                        key="product_select" # key を指定して状態を追跡
                     )
 
+                    # 選択されたら情報を表示し、セッション状態を更新
                     if selected_product:
+                        # selectbox の値が変更された場合のみセッション状態を更新
                         if st.session_state.selected_product_number != selected_product:
                             st.session_state.selected_product_number = selected_product
+                            # 再実行をトリガーして表示を更新 (selectboxの変更自体がトリガーするはず)
+                            # st.experimental_rerun() # 不要な場合が多い
+
+                        # 常に現在の選択に基づいて情報を表示
                         display_product_info(st.session_state.selected_product_number)
+
 else:
     st.warning("⚠️ アプリケーションを実行するための前提条件が満たされていません。上記のエラーメッセージを確認してください。")
 
+
+# --- 修理価格一覧 ---
 st.markdown("---")
 st.subheader("修理価格一覧")
 if os.path.exists(PRICE_LIST_EXCEL_PATH):
     try:
         df_prices = pd.read_excel(PRICE_LIST_EXCEL_PATH)
+        # NaNを空文字に置換し、全列を文字列に変換して表示
         df_prices_display = df_prices.fillna("").astype(str)
         st.table(df_prices_display)
     except FileNotFoundError:
@@ -757,13 +800,15 @@ if os.path.exists(PRICE_LIST_EXCEL_PATH):
 else:
     st.warning(f"⚠️ 修理価格一覧Excelファイルが見つかりません: {PRICE_LIST_EXCEL_PATH}")
 
+# --- 注意点 ---
 st.markdown("---")
 st.subheader("注意点")
 if os.path.exists(NOTES_EXCEL_PATH):
     try:
         df_notes = pd.read_excel(NOTES_EXCEL_PATH)
+        # NaNを空文字に置換し、全列を文字列に変換して表示
         df_notes_display = df_notes.fillna("").astype(str)
-        st.table(df_notes_display)
+        st.table(df_notes_display) # テーブル形式で表示
     except Exception as e:
         st.error(f"❌ 注意点Excelファイル ({NOTES_EXCEL_PATH}) の読み込みエラー: {e}")
 else:
