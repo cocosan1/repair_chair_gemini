@@ -513,7 +513,7 @@ if api_key_present and models_ready and files_present:
     st.subheader("ステップ1: チェア画像のアップロード")
 
     # 修正点 1: st.file_uploader に type 引数を指定
-    allowed_upload_extensions = ["jpg", "jpeg", "png"] # ドットなし、小文字
+    allowed_upload_extensions = ["jpg", "jpeg", "png", "JPG", "JPEG", "PNG"] # ドットなし
     uploaded_file = st.file_uploader(
         "チェア画像をアップロードしてください (JPG, PNG)",
         type=allowed_upload_extensions
@@ -521,6 +521,23 @@ if api_key_present and models_ready and files_present:
     upload_status_placeholder = st.empty()
 
     if uploaded_file is not None:
+
+         # --- デバッグ情報表示 (Cloud環境での確認用) ---
+        st.write(f"--- DEBUG INFO ---")
+        st.write(f"Uploaded File Name: {uploaded_file.name}")
+        st.write(f"Uploaded File Type (MIME): {uploaded_file.type}") # MIMEタイプ
+        
+        file_name, file_extension = os.path.splitext(uploaded_file.name)
+        file_extension_lower = file_extension.lower()
+
+        st.write(f"os.path.splitext - file_name: {file_name}")
+        st.write(f"os.path.splitext - file_extension: {file_extension}")
+        st.write(f"file_extension_lower: {file_extension_lower}")
+        st.write(f"--- END DEBUG INFO ---")
+        # --- デバッグ情報表示ここまで ---
+
+
+
         # ファイル名から拡張子を取得し、小文字に変換
         file_name, file_extension = os.path.splitext(uploaded_file.name)
         file_extension_lower = file_extension.lower() # 例: ".jpg"
