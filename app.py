@@ -533,6 +533,7 @@ if initialization_messages:
 # --- アプリケーションのメインロジック ---
 if api_key_present and models_ready and files_present:
     st.subheader("ステップ1: チェア画像のアップロード")
+    st.markdown("##### 注意！ファイル名は半角英数にしてください。")
 
     # 許可する拡張子のリストは小文字のみにする
     # allowed_extensions = ["jpg", "jpeg", "png"] # <- ★修正点: 大文字を削除
