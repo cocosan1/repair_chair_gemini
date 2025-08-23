@@ -4,8 +4,8 @@ google-generativeai
 Pillow
 numpy
 # tensorflow>=2.5.0 # Specify a suitable version
-tensorflow-cpu  
-tensorflow_hub
+tensorflow==2.15.0
+tensorflow-hub==0.16.1
 scikit-learn
 openpyxl # Needed for reading .xlsx files with pandas
 matplotlib
