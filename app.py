@@ -72,7 +72,8 @@ def configure_gemini():
         try:
             genai.configure(api_key=api_key)
             success_messages.append("✅ Gemini API Keyの設定完了。")
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            # model = genai.GenerativeModel('gemini-1.5-flash-latest')
             success_messages.append(f"✅ Geminiモデル ({model.model_name}) の初期化完了。")
             return model, success_messages
         except Exception as e:
